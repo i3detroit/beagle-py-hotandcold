@@ -1,0 +1,10 @@
+[Unit]
+Description=BeagleBone Python-based thermometer
+
+[Service]
+WorkingDirectory=/home/root/beagle-py-hotandcold
+ExecStart=/usr/bin/nohup /usr/bin/python weather.py
+SyslogIdentifier=beagle-py-hotandcold
+
+[Install]
+WantedBy=multi-user.target
