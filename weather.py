@@ -1,4 +1,4 @@
-################################################################################
+###############################################################################
 #
 #   Raspberry Pi Weather Display
 #
@@ -9,6 +9,7 @@ import time
 import random
 from pygame.locals import *
 import calendar
+import serial
 
 import pywapi
 import string
@@ -20,7 +21,7 @@ mouseX, mouseY = 0, 0
 # Small LCD Display.
 class SmDisplay:
 	screen = None;
-
+	
 	####################################################################
 	def __init__(self):
 		"Ininitializes a new pygame screen using the framebuffer"
@@ -29,7 +30,7 @@ class SmDisplay:
 		disp_no = os.getenv("DISPLAY")
 		if disp_no:
 			print "X Display = {0}".format(disp_no)
-
+		
 		# Check which frame buffer drivers are available
 		# Start with fbcon since directfb hangs with composite output
 		drivers = ['fbcon', 'directfb', 'svgalib']
@@ -48,7 +49,7 @@ class SmDisplay:
 
 		if not found:
 			raise Exception('No suitable video driver found!')
-
+		
 		size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
 		print "Framebuffer Size: %d x %d" % (size[0], size[1])
 		self.screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
@@ -72,6 +73,7 @@ class SmDisplay:
 		self.icon = [ 0, 0, 0, 0 ]
 		self.rain = [ '', '', '', '' ]
 		self.temps = [ ['',''], ['',''], ['',''], ['',''] ]
+
 
 	####################################################################
 	def __del__(self):
@@ -120,6 +122,7 @@ class SmDisplay:
 				self.temps[3][1] = w[f][3]['low'] + unichr(0x2109)
 		except KeyError:
 			print "Weather Error"
+
 
 	####################################################################
 	def disp_weather(self):
@@ -312,11 +315,69 @@ class SmDisplay:
 		# Update the display
 		pygame.display.update()
 
+	####################################################################
+	def disp_calendar(self):
+		# Fill the screen with black
+		self.screen.fill( (0,0,0) )
+		xmax = 656 - 35
+		ymax = 416 - 5
+		lines = 5
+		lc = (255,255,255) 
+		sfn = "freemono"
+		fn = "freesans"
+
+		# Draw Screen Border
+		pygame.draw.line( self.screen, lc, (0,0),(xmax,0), lines )
+		pygame.draw.line( self.screen, lc, (0,0),(0,ymax), lines )
+		pygame.draw.line( self.screen, lc, (0,ymax),(xmax,ymax), lines )
+		pygame.draw.line( self.screen, lc, (xmax,0),(xmax,ymax), lines )
+		pygame.draw.line( self.screen, lc, (0,ymax*0.15),(xmax,ymax*0.15), lines )
+
+		# Time & Date
+		font = pygame.font.SysFont( fn, int(ymax*0.125), bold=1 )		# Regular Font
+		sfont = pygame.font.SysFont( sfn, int(ymax*0.075), bold=1 )		# Small Font for Seconds
+
+		tm1 = time.strftime( "%a, %b %d   %I:%M", time.localtime() )	# 1st part
+		tm2 = time.strftime( "%S", time.localtime() )					# 2nd
+		tm3 = time.strftime( " %P", time.localtime() )					# 
+
+		rtm1 = font.render( tm1, True, lc )
+		(tx1,ty1) = rtm1.get_size()
+		rtm2 = sfont.render( tm2, True, lc )
+		(tx2,ty2) = rtm2.get_size()
+		rtm3 = font.render( tm3, True, lc )
+		(tx3,ty3) = rtm3.get_size()
+
+		tp = xmax / 2 - (tx1 + tx2 + tx3) / 2
+		self.screen.blit( rtm1, (tp,1) )
+		self.screen.blit( rtm2, (tp+tx1+3,8) )
+		self.screen.blit( rtm3, (tp+tx1+tx2,1) )
+
+		# Conditions
+		ys = 0.20		# Yaxis Start Pos
+		xs = 0.20		# Xaxis Start Pos
+		gp = 0.075	# Line Spacing Gap
+		th = 0.06		# Text Height
+
+		#cal = calendar.TextCalendar()
+		cal = calendar.month( 2013, 8 ).splitlines()
+		i = 0
+		for cal_line in cal:
+			txt = sfont.render( cal_line, True, lc )
+			self.screen.blit( txt, (xmax*xs,ymax*(ys+gp*i)) )
+			i = i + 1
+
+		# Update the display
+		pygame.display.update()
+
 	def screen_cap( self ):
 		pygame.image.save( self.screen, "screenshot.jpeg" )
 		print "Screen capture complete."
 
 #==============================================================
+
+ser = serial.Serial( "/dev/ttyO0", 115200 )
+ser.write( "x" )
 
 # Display all the available fonts.
 #print "Fonts: ", pygame.font.get_fonts()
@@ -328,18 +389,25 @@ myDisp = SmDisplay()
 running = True
 s = ""
 myDisp.UpdateWeather()
-
 while running:
 	# Process keyboard events.
 	for event in pygame.event.get():
 		if event.type == pygame.KEYDOWN:
-			if ( event.key == K_KP_ENTER ):
+			if ( (event.key == K_KP_ENTER) or (event.key == K_q) ):
 				running = False
+			elif ( event.key == K_c ):
+				mode = 'c'
 			elif ( event.key == K_w ):
 				mode = 'w'
 			elif ( event.key == K_s ):
 				myDisp.screen_cap()
 
+	if ( mode == 'c' ):
+		# Update / Refresh the display after each second.
+		if ( s != time.strftime("%S") ):
+			s = time.strftime("%S")
+			myDisp.disp_calendar()
+		
 	if ( mode == 'w' ):
 		# Update / Refresh the display after each second.
 		if ( s != time.strftime("%S") ):
@@ -352,6 +420,7 @@ while running:
 			myDisp.UpdateWeather()
 
 	pygame.time.wait( 100 )
+
 
 pygame.quit()
 
