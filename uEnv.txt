@@ -1,0 +1,2 @@
+optargs=quiet consoleblank=0
+video=HDMI-A-1:720x480@60
