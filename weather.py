@@ -377,7 +377,7 @@ class SmDisplay:
 #==============================================================
 
 ser = serial.Serial( "/dev/ttyO0", 115200 )
-ser.write( "x" )
+#ser.write( "x" )
 
 # Display all the available fonts.
 #print "Fonts: ", pygame.font.get_fonts()
