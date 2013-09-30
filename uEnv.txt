@@ -1,2 +1,1 @@
-optargs=quiet consoleblank=0
-video=HDMI-A-1:720x480@60
+optargs=quiet consoleblank=0 video=HDMI-A-1:800x600-16@60
