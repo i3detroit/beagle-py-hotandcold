@@ -413,7 +413,7 @@ while running:
 		if ( s != time.strftime("%S") ):
 			s = time.strftime("%S")
 			myDisp.disp_weather()	
-			ser.write( "Weather\r\n" )
+			# ser.write( "Weather\r\n" )
 		# Once the screen is updated, we have a full second to get the weather.
 		# Once per minute, update the weather from the net.
 		if ( int(s) == 0 ):
